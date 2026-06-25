@@ -1,13 +1,26 @@
 from kafka.admin import KafkaAdminClient, NewTopic
-from config import *
-admin=KafkaAdminClient(bootstrap_servers=KAFKA_SERVER)
-topics=[
-NewTopic(name=TOPIC_TRANSJAKARTA,num_partitions=1,replication_factor=1),
-NewTopic(name=TOPIC_BMKG,num_partitions=1,replication_factor=1),
-NewTopic(name=TOPIC_EVENTS,num_partitions=1,replication_factor=1)
+
+admin_client = KafkaAdminClient(
+    bootstrap_servers="localhost:9092"
+)
+
+topics = [
+    NewTopic(
+        name="suroboyo-bus-live",
+        num_partitions=1,
+        replication_factor=1
+    ),
+    NewTopic(
+        name="holiday-data",
+        num_partitions=1,
+        replication_factor=1
+    ),
+    NewTopic(
+        name="events-surabaya",
+        num_partitions=1,
+        replication_factor=1
+    )
 ]
-try:
-    admin.create_topics(topics)
-    print('Topics created')
-except Exception as e:
-    print(e)
+
+admin_client.create_topics(new_topics=topics)
+print("Topic berhasil dibuat")
