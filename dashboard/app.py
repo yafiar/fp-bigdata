@@ -183,6 +183,35 @@ def call_fastapi(corridor: str, jam: int, tanggal: str, suhu: float, hujan: bool
     }
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def get_bmkg_weather_surabaya() -> dict:
+    """
+    Mengambil data cuaca real-time dari API BMKG untuk wilayah Surabaya.
+    Kita gunakan perkiraan dari endpoint publik BMKG.
+    Di-cache 5 menit agar tidak membebani API BMKG.
+    """
+    try:
+        # Gunakan salah satu kode adm4 Surabaya (misal: 35.78.01.1001 untuk area tengah)
+        # Jika gagal atau tidak tersedia, fallback ke default
+        r = requests.get("https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=35.78.01.1001", timeout=3)
+        if r.status_code == 200:
+            data = r.json()
+            # Ambil data cuaca saat ini dari response
+            # Format response BMKG bervariasi, kita ambil data pertama yang relevan (t, weather_desc)
+            # Karena ini hanya contoh integrasi P4, kita parse secara sederhana:
+            cuaca_data = data.get("data", [])[0].get("cuaca", [[]])[0][0] 
+            
+            suhu = float(cuaca_data.get("t", 32))
+            desc = str(cuaca_data.get("weather_desc", "")).lower()
+            hujan = "hujan" in desc or "rain" in desc
+            return {"suhu": suhu, "hujan": hujan, "desc": desc}
+    except Exception:
+        pass
+    
+    # Fallback jika API BMKG gagal
+    return {"suhu": 32.0, "hujan": False, "desc": "cerah (fallback)"}
+
+
 def generate_24h_forecast(corridor: str, base_jam: int, suhu: float, hujan: bool) -> pd.DataFrame:
     """
     Menghasilkan tabel prediksi penumpang untuk 18 jam operasional (05:00–22:00).
@@ -250,13 +279,24 @@ with st.sidebar:
     selected_date = st.date_input("Tanggal", value=datetime.now())
 
     st.divider()
-    st.markdown("**Simulasi Cuaca**")
+    st.markdown("**Cuaca (Fitur ML)**")
     
-    # Slider suhu (24°C - 38°C), digunakan sebagai fitur input ke model ML
-    suhu_sim = st.slider("Suhu (°C)", 24, 38, 32)
+    # Pilihan untuk menggunakan cuaca asli dari BMKG atau simulasi manual
+    use_bmkg = st.sidebar.toggle("Gunakan Cuaca Asli (API BMKG)", value=True)
     
-    # Toggle hujan — jika aktif, prediksi penumpang akan berkurang
-    hujan_sim = st.toggle("Hujan", value=False)
+    if use_bmkg:
+        # Ambil cuaca dari BMKG
+        bmkg_data = get_bmkg_weather_surabaya()
+        suhu_sim = bmkg_data["suhu"]
+        hujan_sim = bmkg_data["hujan"]
+        st.info(f"📍 **Surabaya Saat Ini**\n\nSuhu: {suhu_sim}°C\n\nKondisi: {bmkg_data['desc'].title()}")
+    else:
+        st.caption("Mode Simulasi Aktif")
+        # Slider suhu (24°C - 38°C), digunakan sebagai fitur input ke model ML
+        suhu_sim = st.slider("Suhu (°C)", 24, 38, 32)
+        
+        # Toggle hujan — jika aktif, prediksi penumpang akan berkurang
+        hujan_sim = st.toggle("Simulasi Hujan", value=False)
 
     # Toggle auto-refresh — jika aktif, halaman otomatis di-refresh tiap 30 detik
     # Default OFF agar halaman tidak berkedip saat pertama dibuka
