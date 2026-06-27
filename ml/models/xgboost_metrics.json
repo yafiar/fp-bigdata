@@ -1,0 +1,26 @@
+{
+  "accuracy": 1.0,
+  "n_train": 664,
+  "n_test": 167,
+  "best_cv_accuracy": 1.0,
+  "classes": [
+    "rendah",
+    "sedang",
+    "tinggi"
+  ],
+  "feature_importance": {
+    "n_efektif": 0.2660072445869446,
+    "feeder_enc": 0.1693054884672165,
+    "pct_mangkal": 0.13861848413944244,
+    "headway_gap_vs_spm": 0.11844117939472198,
+    "n_total": 0.10388466715812683,
+    "headway_real_min": 0.10346062481403351,
+    "pct_efektif": 0.10028230398893356,
+    "hour": 0.0,
+    "is_weekend_enc": 0.0,
+    "is_peak_enc": 0.0,
+    "avg_speed_kmh": 0.0,
+    "time_category_enc": 0.0,
+    "service_level_enc": 0.0
+  }
+}

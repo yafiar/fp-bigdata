@@ -1,0 +1,22 @@
+{
+  "features": [
+    "hour",
+    "is_peak_enc",
+    "is_weekend_enc",
+    "feeder_enc",
+    "n_total",
+    "pct_efektif",
+    "avg_speed_kmh",
+    "pct_mangkal",
+    "time_category_enc",
+    "service_level_enc"
+  ],
+  "time_category_classes": [
+    "malam"
+  ],
+  "service_level_classes": [
+    "baik",
+    "buruk",
+    "sedang"
+  ]
+}
