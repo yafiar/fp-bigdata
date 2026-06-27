@@ -12,6 +12,6 @@ while True:
       'stop':random.choice(stops),
       'passenger_count':random.randint(20,300)
     }
-    producer.send(TOPIC_SUROBOYO_BUS,value=data)
+    producer.send(TOPIC_BUS,value=data)
     print(data)
     time.sleep(5)

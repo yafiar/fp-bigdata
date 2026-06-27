@@ -10,9 +10,9 @@ producer = KafkaProducer(
 while True:
 
     event = {
-        "event_name": "Jakarta Fair",
-        "location": "Kemayoran",
-        "impact": "high"
+    "event_name":"Car Free Day Surabaya",
+    "location":"Jalan Tunjungan",
+    "impact":"medium"
     }
 
     producer.send(

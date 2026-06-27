@@ -10,7 +10,7 @@ producer = KafkaProducer(
     value_serializer=lambda v: json.dumps(v).encode("utf-8")
 )
 
-URL = "https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=31.74.01.1001"
+URL = "https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=35.78.01.1001"
 
 while True:
 

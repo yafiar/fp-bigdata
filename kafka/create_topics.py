@@ -7,17 +7,23 @@ admin_client = KafkaAdminClient(
 
 topics = [
 
-    NewTopic(
-        name="suroboyo-bus-live",
-        num_partitions=1,
-        replication_factor=1
-    ),
+NewTopic(
+name="suroboyo-bus-live",
+num_partitions=1,
+replication_factor=1
+),
 
-    NewTopic(
-        name="bmkg-raw",
-        num_partitions=1,
-        replication_factor=1
-    )
+NewTopic(
+name="bmkg-raw",
+num_partitions=1,
+replication_factor=1
+),
+
+NewTopic(
+name="events-raw",
+num_partitions=1,
+replication_factor=1
+)
 
 ]
 
