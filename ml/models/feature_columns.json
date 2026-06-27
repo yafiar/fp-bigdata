@@ -1,0 +1,47 @@
+{
+  "numeric": [
+    "hour",
+    "is_peak_enc",
+    "is_weekend_enc",
+    "feeder_enc",
+    "n_total",
+    "n_efektif",
+    "pct_efektif",
+    "headway_real_min",
+    "headway_gap_vs_spm",
+    "avg_speed_kmh",
+    "pct_mangkal"
+  ],
+  "categorical": [
+    "time_category",
+    "service_level"
+  ],
+  "final": [
+    "hour",
+    "is_peak_enc",
+    "is_weekend_enc",
+    "feeder_enc",
+    "n_total",
+    "n_efektif",
+    "pct_efektif",
+    "headway_real_min",
+    "headway_gap_vs_spm",
+    "avg_speed_kmh",
+    "pct_mangkal",
+    "time_category_enc",
+    "service_level_enc"
+  ],
+  "target_classes": [
+    "rendah",
+    "sedang",
+    "tinggi"
+  ],
+  "time_category_classes": [
+    "malam"
+  ],
+  "service_level_classes": [
+    "baik",
+    "buruk",
+    "sedang"
+  ]
+}
