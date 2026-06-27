@@ -340,6 +340,9 @@ if status == "SURGE":
     </div>
     """, unsafe_allow_html=True)
 
+if pred_result.get("source") == "synthetic":
+    st.warning("⚠️ **Koneksi ke Machine Learning API terputus.** Menampilkan data prediksi simulasi (synthetic fallback) untuk menjaga operasional dashboard.")
+
 # =============================================================================
 # METRIC CARDS
 # =============================================================================
