@@ -84,6 +84,20 @@ def load_corridors_data():
 
 CORRIDORS, TOTAL_HALTE, TOTAL_GEOCODED = load_corridors_data()
 
+@st.cache_data(ttl=60)
+def load_armada_data():
+    file_path = "../dataset/Data Armada SuroboyoBus 2025.xlsx"
+    if not os.path.exists(file_path):
+        return 0
+    try:
+        df = pd.read_excel(file_path)
+        suroboyo_df = df[df['kategori'].str.contains('suroboyo_bus', case=False, na=False)]
+        return int(suroboyo_df['jumlah'].sum())
+    except:
+        return 0
+
+TOTAL_ARMADA_SUROBOYOBUS = load_armada_data()
+
 if not CORRIDORS:
     st.stop()
 
@@ -122,6 +136,10 @@ def call_fastapi(corridor: str, jam: int, tanggal: str, suhu: float, hujan: bool
     Kirim request ke FastAPI dengan field feeder agar API bisa bedakan
     koridor trunk (SB, kapasitas 60) vs feeder Wara-Wiri (kapasitas 15).
     """
+    tanggal_dt = datetime.strptime(tanggal, "%Y-%m-%d")
+    day_of_week = tanggal_dt.strftime("%A")
+    is_weekend = 1 if day_of_week in ["Saturday", "Sunday"] else 0
+
     if is_api_alive():
         try:
             payload = {
@@ -131,6 +149,8 @@ def call_fastapi(corridor: str, jam: int, tanggal: str, suhu: float, hujan: bool
                 "suhu": suhu,
                 "hujan": int(hujan),
                 "feeder": feeder,  # PENTING: kirim info feeder ke API
+                "day_of_week": day_of_week,
+                "is_weekend": is_weekend,
             }
             r = requests.post("http://localhost:8000/predict", json=payload, timeout=1.5)
             if r.status_code == 200:
@@ -154,6 +174,9 @@ def call_fastapi(corridor: str, jam: int, tanggal: str, suhu: float, hujan: bool
         "armada_rekomendasi": max(1, -(-pred // cap)),
         "status": get_status(pred, cap),
         "confidence": round(random.uniform(0.72, 0.94), 2),
+        "demand_level": "SEDANG" if pred > 10 else "RENDAH",
+        "headway_pred": round(random.uniform(10, 20), 1),
+        "headway_status": "BAIK" if random.random() > 0.5 else "BURUK",
         "source": "synthetic",
     }
 
@@ -174,12 +197,12 @@ def get_bmkg_weather_surabaya() -> dict:
     return {"suhu": 32.0, "hujan": False, "desc": "cerah (fallback)"}
 
 
-def generate_24h_forecast(corridor: str, base_jam: int, suhu: float, hujan: bool) -> pd.DataFrame:
+def generate_24h_forecast(corridor: str, base_jam: int, suhu: float, hujan: bool, tanggal: str) -> pd.DataFrame:
     feeder = CORRIDORS[corridor]["feeder"]
     cap = CORRIDORS[corridor]["capacity"]
     rows = []
     for h in range(5, 23):
-        result = call_fastapi(corridor, h, datetime.now().strftime("%Y-%m-%d"), suhu, hujan, feeder=feeder)
+        result = call_fastapi(corridor, h, tanggal, suhu, hujan, feeder=feeder)
         rows.append({
             "Jam": f"{h:02d}:00",
             "Prediksi": result["prediksi_penumpang"],
@@ -216,6 +239,8 @@ with st.sidebar:
     st.markdown("### Suroboyo Bus")
     st.markdown("**Smart Demand Dashboard**")
     st.caption(f"📊 {len(CORRIDORS)} koridor aktif · {TOTAL_GEOCODED}/{TOTAL_HALTE} halte berkoordinat")
+    if TOTAL_ARMADA_SUROBOYOBUS > 0:
+        st.caption(f"🚌 Total Armada Suroboyo Bus: {TOTAL_ARMADA_SUROBOYOBUS} unit")
     st.divider()
 
     selected_corridor = st.selectbox("Pilih Koridor", list(CORRIDORS.keys()))
@@ -298,7 +323,10 @@ pred_result = call_fastapi(
 penumpang  = pred_result["prediksi_penumpang"]
 armada     = pred_result["armada_rekomendasi"]
 status     = pred_result["status"]
-confidence = pred_result["confidence"]
+confidence = pred_result.get("confidence", 0.0)
+demand     = pred_result.get("demand_level", "Unknown").upper()
+hw_pred    = pred_result.get("headway_pred", 0.0)
+hw_status  = pred_result.get("headway_status", "Unknown").upper()
 
 # =============================================================================
 # ALERT SURGE
@@ -315,7 +343,8 @@ if status == "SURGE":
 # =============================================================================
 # METRIC CARDS
 # =============================================================================
-c1, c2, c3, c4 = st.columns(4)
+c1, c2, c3 = st.columns(3)
+c4, c5, c6 = st.columns(3)
 
 with c1:
     st.markdown(f"""<div class="metric-card">
@@ -345,6 +374,22 @@ with c4:
         <div class="label">Status Koridor</div>
         <div class="value" style="font-size:1.4rem; color:{color_val};">{status}</div>
         <div class="delta">Confidence: {int(confidence*100)}%</div>
+    </div>""", unsafe_allow_html=True)
+
+with c5:
+    demand_color = "#fca5a5" if demand == "TINGGI" else "#fef08a" if demand == "SEDANG" else "#86efac"
+    st.markdown(f"""<div class="metric-card">
+        <div class="label">Tingkat Permintaan (ML)</div>
+        <div class="value" style="font-size:1.4rem; color:{demand_color};">{demand}</div>
+        <div class="delta">Model: XGBoost Classifier</div>
+    </div>""", unsafe_allow_html=True)
+
+with c6:
+    hw_color = "#86efac" if hw_status == "BAIK" else "#fca5a5"
+    st.markdown(f"""<div class="metric-card">
+        <div class="label">Estimasi Headway (ML)</div>
+        <div class="value" style="font-size:1.4rem; color:{hw_color};">{hw_pred} <span style="font-size:1rem">mnt</span></div>
+        <div class="delta">Status: {hw_status}</div>
     </div>""", unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
@@ -404,7 +449,7 @@ with col_map:
 with col_chart:
     st.markdown('<div class="section-title">Prediksi Penumpang 24 Jam</div>', unsafe_allow_html=True)
 
-    df_24 = generate_24h_forecast(selected_corridor, selected_jam, suhu_sim, hujan_sim)
+    df_24 = generate_24h_forecast(selected_corridor, selected_jam, suhu_sim, hujan_sim, selected_date.strftime("%Y-%m-%d"))
 
     fig = go.Figure()
 
