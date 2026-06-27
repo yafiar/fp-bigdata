@@ -1,0 +1,17 @@
+# Virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# Delta Lake output (data hasil runtime, jangan di-commit)
+delta/
+delta_test/
+
+# Spark checkpoint & temp
+*.crc
+_checkpoints/
+_delta_log/
+
+# OS / Editor
+.DS_Store
+.vscode/
