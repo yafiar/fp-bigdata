@@ -1,6 +1,6 @@
 """
 Producer dummy untuk testing pipeline P2 (delta_layers.py).
-Mengirim data simulasi tap-in/tap-out Transjakarta ke topic 'transjakarta-raw'.
+Mengirim data simulasi tap-in/tap-out Transjakarta ke topic 'suroboyo-bus-live'.
 
 Cara pakai:
     python kafka/producer_dummy_test.py
@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 from kafka import KafkaProducer
 
 BOOTSTRAP_SERVERS = "localhost:9092"
-TOPIC = "transjakarta-raw"
+TOPIC = "suroboyo-bus-live"
 
 # Daftar koridor dan halte contoh (subset kecil untuk testing)
 KORIDOR_HALTE = {

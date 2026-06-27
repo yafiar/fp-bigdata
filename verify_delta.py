@@ -1,7 +1,7 @@
 # P2 - Data Processing & Storage
 >> 
 >> Pipeline ini membaca data tap-in/tap-out Transjakarta dari Kafka topic
->> `transjakarta-raw`, lalu memprosesnya melalui 3 layer Delta Lake
+>> `suroboyo-bus-live`, lalu memprosesnya melalui 3 layer Delta Lake
 >> (Bronze -> Silver -> Gold) dan mengekspor Feature Store CSV untuk dipakai
 >> oleh P3 (Machine Learning) dan P5 (Data Engineering).
 >> 

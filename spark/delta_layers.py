@@ -45,7 +45,7 @@ schema = StructType() \
     .add("timestamp", StringType())
 
 KAFKA_BOOTSTRAP = "localhost:9092"
-KAFKA_TOPIC = "transjakarta-raw"
+KAFKA_TOPIC = "suroboyo-bus-live"
 
 # ============================================================
 # BACA STREAM DARI KAFKA
