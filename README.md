@@ -58,6 +58,6 @@ Direktori `dashboard/` berisi aplikasi Frontend (berbasis **Streamlit**) yang be
 ## Menjalankan Dashboard
 Masuk ke root direktori proyek, lalu jalankan:
 ```bash
-streamlit run dashboard/app.py
+ python -m streamlit run app.py
 ```
 > **Note:** Jika server FastAPI P3 sedang mati, dashboard otomatis menggunakan data *fallback* sintetis agar UI dan Peta tetap berfungsi dengan baik untuk keperluan demonstrasi.
