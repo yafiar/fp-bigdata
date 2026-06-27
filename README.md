@@ -1,7 +1,7 @@
 # P2 - Data Processing & Storage
 
 Pipeline ini membaca data tap-in/tap-out Transjakarta dari Kafka topic
-`transjakarta-raw`, lalu memprosesnya melalui 3 layer Delta Lake
+`suroboyo-bus-live`, lalu memprosesnya melalui 3 layer Delta Lake
 (Bronze -> Silver -> Gold) dan mengekspor Feature Store CSV untuk dipakai
 oleh P3 (Machine Learning) dan P5 (Data Engineering).
 
@@ -40,3 +40,24 @@ delta/
 1. Java 21 (Temurin direkomendasikan - Java 11 terlalu lama untuk
    Spark 4.x, Java 23+ punya bug kompatibilitas dengan Hadoop)
 2. Python 3.12 dengan pyspark==4.1.1 dan delta-spark==4.3.0
+
+---
+
+# P4 - Dashboard & Visualisasi
+
+Direktori `dashboard/` berisi aplikasi Frontend (berbasis **Streamlit**) yang berfungsi sebagai titik akhir dari keseluruhan *pipeline* Big Data.
+
+## Alur Data (Flow) P4
+1. **Membaca Dataset Geospasial**: Dashboard membaca `dataset/Halte_Suroboyo_dengan_Koordinat.csv` untuk memetakan koordinat riil (Latitude/Longitude) dari setiap halte Suroboyo Bus & Wara-Wiri.
+2. **Koneksi ke Backend (P3)**: Saat pengguna mengganti filter (Koridor, Waktu, Suhu, Cuaca) di panel samping, dashboard akan mengirim HTTP POST *Request* ke endpoint **FastAPI P3** (`http://localhost:8000/predict`).
+3. **Visualisasi Prediksi & Rekomendasi**:
+   - Jika API aktif, dashboard menerima angka prediksi penumpang.
+   - Peta interaktif (Folium) akan menyesuaikan warna halte (Merah = SURGE, Hijau = NORMAL, Biru = LOW) berdasarkan prediksi penumpang terhadap rasio kapasitas armada.
+   - Tabel Rekomendasi Armada menghitung dan menampilkan berapa bus yang perlu di-deploy untuk memenuhi *demand* tersebut tanpa melebihi total unit bus fisik (bersumber dari rekomendasi backend P3).
+
+## Menjalankan Dashboard
+Masuk ke root direktori proyek, lalu jalankan:
+```bash
+ python -m streamlit run app.py
+```
+> **Note:** Jika server FastAPI P3 sedang mati, dashboard otomatis menggunakan data *fallback* sintetis agar UI dan Peta tetap berfungsi dengan baik untuk keperluan demonstrasi.

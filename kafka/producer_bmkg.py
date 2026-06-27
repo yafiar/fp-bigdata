@@ -1,12 +1,54 @@
 from kafka import KafkaProducer
-import requests,json,time
+import requests
+import json
+import time
+
 from config import *
-producer=KafkaProducer(bootstrap_servers=KAFKA_SERVER,value_serializer=lambda v: json.dumps(v).encode())
+
+producer = KafkaProducer(
+    bootstrap_servers=KAFKA_SERVER,
+    value_serializer=lambda v: json.dumps(v).encode("utf-8")
+)
+
+URL = "https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=31.74.01.1001"
+
 while True:
+
     try:
-        r=requests.get('https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=31.74.01.1001')
-        producer.send(TOPIC_BMKG,value=r.json())
-        print('BMKG data sent')
+
+        response = requests.get(URL, timeout=10)
+
+        data = response.json()
+
+        weather = data["data"][0]["cuaca"][0][0]
+
+        message = {
+
+            "timestamp": weather["local_datetime"],
+
+            "suhu": weather["t"],
+
+            "hujan": weather["weather_desc"],
+
+            "kelembapan": weather["hu"],
+
+            "kecepatan_angin": weather["ws"]
+
+        }
+
+        producer.send(
+            TOPIC_BMKG,
+            value=message
+        )
+
+        producer.flush()
+
+        print("BMKG data sent")
+
+        print(message)
+
     except Exception as e:
-        print(e)
-    time.sleep(5)
+
+        print("ERROR :", e)
+
+    time.sleep(300)

@@ -1,0 +1,112 @@
+ID,Nama_Halte,Rute_yang_Melewati,Latitude,Longitude
+29,Bank Danamon Diponegoro,fd02 2,-7.2627,112.7351
+74,Darmo,sbr1 R1,-7.2795,112.7335
+75,Darmo Indah Timur A,fd09 9,-7.2795,112.7335
+76,Darmo Indah Timur B,fd09 9,-7.2795,112.7335
+77,Darmo Park 1,tmk2 R2 / fd02 2 / fd05 5 / fd09 9,-7.2795,112.7335
+78,Darmo Park 2,tmk2 R2 / fd02 2 / fd05 5 / fd09 9,-7.2795,112.7335
+79,Darmo Permai III A,fd05 5 / fd08 8,-7.2795,112.7335
+80,Darmo Permai III B,fd05 5 / fd08 8,-7.2795,112.7335
+81,Darmo Permai Timur A,fd09 9,-7.2795,112.7335
+82,Darmo Permai Timur B,fd09 9,-7.2795,112.7335
+83,Darmo Permai Utara A,fd05 5,-7.2795,112.7335
+84,Darmo Permai Utara B,fd05 5,-7.2795,112.7335
+85,Darmokali 1A,fd04 4,-7.2795,112.7335
+86,Darmokali 1B,fd04 4,-7.2795,112.7335
+87,Darmokali 2A,fd04 4,-7.2795,112.7335
+88,Darmokali 2B,fd04 4,-7.2795,112.7335
+98,Dukuh Kupang A,fd05 5,-7.2825,112.7185
+99,Dukuh Kupang B,fd05 5,-7.2825,112.7185
+100,Dukuh Kupang Barat 2A,fd05 5,-7.2825,112.7185
+101,Dukuh Kupang Barat 2B,fd05 5,-7.2825,112.7185
+102,Dukuh Kupang Barat A,fd05 5,-7.2825,112.7185
+103,Dukuh Kupang Barat B,fd05 5,-7.2825,112.7185
+106,Embong Malang,sbr1 R1 / tmk2 R2 / sbr5 R5 / fd07 7,-7.259,112.7381
+107,Embong Malang 2,sbr5 R5,-7.259,112.7381
+209,Joyoboyo 2,sbr1 R1 / fd06 6 / fd03 3 / fd04 4 / fd09 9,-7.3194,112.7372
+289,KENJERAN 1,fd12 12,-7.2353,112.7706
+290,KENJERAN PARK,fd11 11 / fd12 12,-7.2353,112.7706
+315,KONI MERR 3L,sbr4 R4 / fd12 12,-7.2934,112.7752
+338,Lidah Wetan A,fd06 6,-7.3133,112.6923
+339,Lidah Wetan B,fd06 6,-7.3133,112.6923
+350,Manyar,sbr4 R4 / fd07 7 / fd03 3 / fd11 11,-7.2714,112.7633
+351,Manyar 2A,fd11 11,-7.2714,112.7633
+352,Manyar 2B,fd11 11,-7.2714,112.7633
+353,Manyar Airdas A,fd07 7,-7.2714,112.7633
+354,Manyar Airdas B,fd07 7,-7.2714,112.7633
+355,Manyar Dukuh A,fd07 7,-7.2714,112.7633
+356,Manyar Dukuh B,fd07 7,-7.2714,112.7633
+357,Manyar Indah A,fd11 11,-7.2714,112.7633
+358,Manyar Indah B,fd11 11,-7.2714,112.7633
+359,Manyar Kerta Adi,tmk2 R2 / sbr4 R4 / fd12 12,-7.2714,112.7633
+360,Manyar Kertoarjo A,fd10 10,-7.2714,112.7633
+361,Manyar Kertoarjo B,fd10 10,-7.2714,112.7633
+362,Manyar Medical Centre A,fd11 11,-7.2714,112.7633
+363,Manyar Medical Centre B,fd11 11,-7.2714,112.7633
+364,Manyar Sabrangan,fd07 7,-7.2714,112.7633
+365,Manyar Tirtoyoso A,fd10 10,-7.2714,112.7633
+366,Manyar Tirtoyoso B,fd10 10,-7.2714,112.7633
+402,MERR Gunung Anyar,fd03 3,-7.2934,112.7752
+403,MERR Semampir A,fd03 3,-7.2934,112.7752
+404,MERR Semampir B,fd03 3,-7.2934,112.7752
+426,Ngagel 1A,fd03 3 / fd04 4,-7.2983,112.7432
+427,Ngagel 1B,fd03 3,-7.2983,112.7432
+428,Ngagel Jaya A,sbr4 R4,-7.2983,112.7432
+429,Ngagel Jaya B,sbr4 R4,-7.2983,112.7432
+430,Ngagel Jaya Barat,fd03 3,-7.2983,112.7432
+431,Ngagel Jaya Selatan,fd03 3,-7.2983,112.7432
+432,Ngagel Jaya Tengah A,fd07 7,-7.2983,112.7432
+433,Ngagel Jaya Tengah B,fd07 7,-7.2983,112.7432
+434,Ngagel Jaya Utara A,fd07 7,-7.2983,112.7432
+435,Ngagel Jaya Utara B,fd07 7,-7.2983,112.7432
+436,Ngagel Madya A,fd03 3,-7.2983,112.7432
+437,Ngagel Madya B,fd03 3,-7.2983,112.7432
+464,Pantai Batu Batu Kenjeran A,fd11 11,-7.2353,112.7706
+465,Pantai Batu Batu Kenjeran B,fd11 11,-7.2353,112.7706
+477,Pasar Manyar,fd07 7,-7.2714,112.7633
+480,Pasar Modern Darmo Permai A,fd05 5,-7.2795,112.7335
+481,Pasar Modern Darmo Permai B,fd05 5,-7.2795,112.7335
+490,Pasar Turi,sbr1 R1,-7.2433,112.7302
+560,Puskesmas Dukuh Kupang A,fd05 5,-7.2825,112.7185
+561,Puskesmas Dukuh Kupang B,fd05 5,-7.2825,112.7185
+571,Rajawali,sbr1 R1,-7.2472,112.7416
+609,Ruko Darmo Permai A,fd05 5,-7.2795,112.7335
+610,Ruko Darmo Permai B,fd05 5,-7.2795,112.7335
+614,Rumah Sakit Darmo,sbr1 R1 / tmk2 R2,-7.2795,112.7335
+621,Samsat Manyar,tmk2 R2 / fd10 10,-7.2714,112.7633
+643,SDN Ngagel A,fd03 3,-7.2983,112.7432
+644,SDN Ngagel B,fd03 3,-7.2983,112.7432
+658,Semolowaru A,fd03 3,-7.3001,112.7694
+659,Semolowaru B,fd03 3,-7.3001,112.7694
+660,Semolowaru Elok A,fd03 3,-7.3001,112.7694
+661,Semolowaru Elok B,fd03 3,-7.3001,112.7694
+662,Semolowaru Masjid A,fd03 3,-7.3001,112.7694
+663,Semolowaru Masjid B,fd03 3,-7.3001,112.7694
+664,Semolowaru Tengah A,fd03 3,-7.3001,112.7694
+665,Semolowaru Tengah B,fd03 3,-7.3001,112.7694
+688,Simpang Darmo Baru Barat A,fd09 9,-7.2795,112.7335
+689,Simpang Darmo Baru Barat B,fd09 9,-7.2795,112.7335
+690,Simpang Darmo Permai Selatan A,fd05 5,-7.2795,112.7335
+691,Simpang Darmo Permai Selatan B,fd05 5,-7.2795,112.7335
+707,Simpang Semolowaru A,fd03 3,-7.3001,112.7694
+708,Simpang Semolowaru B,fd03 3,-7.3001,112.7694
+717,SKG MERR A,fd03 3 / fd12 12,-7.2934,112.7752
+718,SKG MERR B,fd03 3 / fd12 12,-7.2934,112.7752
+746,SPBU Ngagel A,fd03 3,-7.2983,112.7432
+747,SPBU Ngagel B,fd03 3,-7.2983,112.7432
+751,Stasiun Pasar Turi,fd07 7,-7.2433,112.7302
+752,Stasiun Wonokromo A,fd03 3,-7.3106,112.7369
+753,Stasiun Wonokromo B,fd03 3,-7.3106,112.7369
+819,Terminal Dukuh Kupang,fd05 5,-7.2825,112.7185
+820,Terminal Joyoboyo,sbr1 R1 / fd06 6 / fd03 3 / fd04 4 / fd09 9,-7.3194,112.7372
+826,Terminal Purabaya,sbr1 R1 / sbr4 R4 / fd12 12,-7.3565,112.7273
+831,THP Kenjeran,fd11 11,-7.2353,112.7706
+832,THP Kenjeran Utara A,fd11 11,-7.2353,112.7706
+833,THP Kenjeran Utara B,fd11 11,-7.2353,112.7706
+834,TMP Ngagel 1,fd03 3,-7.2983,112.7432
+835,TMP Ngagel 2,fd03 3,-7.2983,112.7432
+837,Tunjungan,sbr1 R1 / tmk2 R2 / sbr5 R5 / fd07 7,-7.2562,112.7391
+838,UBAYA Ngagel A,sbr4 R4 / fd07 7 / fd03 3,-7.2983,112.7432
+839,UBAYA Ngagel B,sbr4 R4,-7.2983,112.7432
+867,Urip Sumoharjo 1,sbr1 R1 / fd02 2,-7.2668,112.7325
+868,Urip Sumoharjo 2,sbr1 R1 / tmk2 R2 / fd02 2,-7.2668,112.7325

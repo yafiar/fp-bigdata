@@ -2,7 +2,7 @@ from kafka import KafkaConsumer
 import json
 
 consumer = KafkaConsumer(
-    "transjakarta-raw",
+    "suroboyo-bus-live",
     "bmkg-raw",
     "events-raw",
     bootstrap_servers="localhost:9092",
@@ -13,5 +13,8 @@ consumer = KafkaConsumer(
 print("Listening all topics...")
 
 for message in consumer:
-    print(f"\nTOPIC: {message.topic}")
-    print(message.value)
+
+    print("\n==============================")
+    print("TOPIC :", message.topic)
+    print("==============================")
+    print(json.dumps(message.value, indent=4))

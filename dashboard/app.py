@@ -46,51 +46,67 @@ st.markdown(f"<style>{css_isi}</style>", unsafe_allow_html=True)
 
 # =============================================================================
 
-# DATA STATIS — KORIDOR DAN HALTE BUS
-# Dictionary berisi nama koridor, daftar halte (nama, latitude, longitude),
-# dan kapasitas maksimum penumpang per bus
 # =============================================================================
-CORRIDORS = {
-    "Koridor 1: Purabaya - Rajawali": {
-        "stops": [
-            ("Terminal Purabaya",    -7.3565, 112.7273),
-            ("Joyoboyo",             -7.3194, 112.7372),
-            ("Wonokromo",            -7.3106, 112.7369),
-            ("Ngagel",               -7.2983, 112.7432),
-            ("Ngagel Jaya",          -7.2891, 112.7461),
-            ("Darmo",                -7.2795, 112.7335),
-            ("Urip Sumoharjo",       -7.2668, 112.7325),
-            ("Embong Malang",        -7.2590, 112.7381),
-            ("Rajawali",             -7.2472, 112.7416),
-        ],
-        "capacity": 60,  # Kapasitas maksimum 60 penumpang per bus
-    },
-    "Koridor 2: Rajawali - Lidah Wetan": {
-        "stops": [
-            ("Rajawali",             -7.2472, 112.7416),
-            ("Tunjungan",            -7.2562, 112.7391),
-            ("Basuki Rahmat",        -7.2608, 112.7500),
-            ("Manyar",               -7.2714, 112.7633),
-            ("Galaxy Mall",          -7.2844, 112.7706),
-            ("MERR",                 -7.2934, 112.7752),
-            ("Semolowaru",           -7.3001, 112.7694),
-            ("Lidah Wetan",          -7.3133, 112.6923),
-        ],
-        "capacity": 60,
-    },
-    "Koridor 3: Puspa Agro - Kenjeran": {
-        "stops": [
-            ("Puspa Agro",           -7.3708, 112.7008),
-            ("Dukuh Kupang",         -7.2825, 112.7185),
-            ("Kupang Indah",         -7.2764, 112.7218),
-            ("Diponegoro",           -7.2627, 112.7351),
-            ("Pasar Turi",           -7.2433, 112.7302),
-            ("Dupak",                -7.2364, 112.7244),
-            ("Kenjeran",             -7.2353, 112.7706),
-        ],
-        "capacity": 55,  # Koridor 3 kapasitasnya sedikit lebih kecil
-    },
-}
+# DATA DINAMIS — KORIDOR DAN HALTE BUS
+# Membaca data koridor dan halte dari dataset (hasil geocoding)
+# =============================================================================
+import re  # Untuk word-boundary matching pada kode rute
+
+@st.cache_data(ttl=60)
+def load_corridors_data():
+    file_path = "../dataset/Halte_Suroboyo_dengan_Koordinat.csv"
+    koridor_path = "../dataset/Data Koridor SuroboyoBus & WaraWiri API.xlsx"
+    
+    # Jika dataset belum ada (script geocoding belum selesai/dijalankan)
+    if not os.path.exists(file_path):
+        st.error("⚠️ Data halte berkoordinat belum tersedia! Jalankan `data_prep/geocode_halte.py` terlebih dahulu.")
+        return {}, 0, 0
+        
+    try:
+        df_halte = pd.read_csv(file_path)
+        df_koridor = pd.read_excel(koridor_path)
+    except Exception as e:
+        st.error(f"Gagal membaca dataset: {e}")
+        return {}, 0, 0
+
+    total_halte = len(df_halte)
+    halte_with_coords = df_halte.dropna(subset=['Latitude', 'Longitude'])
+    total_geocoded = len(halte_with_coords)
+
+    corridors_dict = {}
+    
+    # Kelompokkan halte per koridor menggunakan regex word-boundary
+    # agar key "fd05" tidak salah match ke "fd0" atau sebaliknya
+    for _, row in df_koridor.iterrows():
+        key = str(row['KEY']).strip()
+        tipe = str(row['KETERANGAN']).strip()
+        nama_rute = f"{tipe} {key.upper()}: {str(row['RUTE']).strip()}"
+        
+        # Buat regex pattern dengan word boundary
+        pattern = re.compile(r'(?:^|[\s/])' + re.escape(key) + r'(?:[\s/]|$)', re.IGNORECASE)
+        
+        halte_list = []
+        for _, h_row in halte_with_coords.iterrows():
+            rutes = str(h_row['Rute_yang_Melewati'])
+            if pattern.search(rutes):
+                lat = h_row['Latitude']
+                lon = h_row['Longitude']
+                halte_list.append((str(h_row['Nama_Halte']).strip(), float(lat), float(lon)))
+        
+        # Hanya tambahkan koridor jika minimal ada 1 halte valid
+        if halte_list:
+            corridors_dict[nama_rute] = {
+                "stops": halte_list,
+                "capacity": 60 if tipe == "SB" else 15  # Wara-Wiri kapasitas lebih kecil
+            }
+            
+    return corridors_dict, total_halte, total_geocoded
+
+CORRIDORS, TOTAL_HALTE, TOTAL_GEOCODED = load_corridors_data()
+
+# Hentikan eksekusi dashboard jika data koridor kosong (mencegah error lanjutan)
+if not CORRIDORS:
+    st.stop()
 
 # Daftar jam operasional bus (05:00 sampai 22:00)
 HOURS = list(range(5, 23))   # Menghasilkan [5, 6, 7, ..., 22]
@@ -183,6 +199,35 @@ def call_fastapi(corridor: str, jam: int, tanggal: str, suhu: float, hujan: bool
     }
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def get_bmkg_weather_surabaya() -> dict:
+    """
+    Mengambil data cuaca real-time dari API BMKG untuk wilayah Surabaya.
+    Kita gunakan perkiraan dari endpoint publik BMKG.
+    Di-cache 5 menit agar tidak membebani API BMKG.
+    """
+    try:
+        # Gunakan salah satu kode adm4 Surabaya (misal: 35.78.01.1001 untuk area tengah)
+        # Jika gagal atau tidak tersedia, fallback ke default
+        r = requests.get("https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=35.78.01.1001", timeout=3)
+        if r.status_code == 200:
+            data = r.json()
+            # Ambil data cuaca saat ini dari response
+            # Format response BMKG bervariasi, kita ambil data pertama yang relevan (t, weather_desc)
+            # Karena ini hanya contoh integrasi P4, kita parse secara sederhana:
+            cuaca_data = data.get("data", [])[0].get("cuaca", [[]])[0][0] 
+            
+            suhu = float(cuaca_data.get("t", 32))
+            desc = str(cuaca_data.get("weather_desc", "")).lower()
+            hujan = "hujan" in desc or "rain" in desc
+            return {"suhu": suhu, "hujan": hujan, "desc": desc}
+    except Exception:
+        pass
+    
+    # Fallback jika API BMKG gagal
+    return {"suhu": 32.0, "hujan": False, "desc": "cerah (fallback)"}
+
+
 def generate_24h_forecast(corridor: str, base_jam: int, suhu: float, hujan: bool) -> pd.DataFrame:
     """
     Menghasilkan tabel prediksi penumpang untuk 18 jam operasional (05:00–22:00).
@@ -238,6 +283,9 @@ if "last_refresh" not in st.session_state:
 with st.sidebar:
     st.markdown("### Suroboyo Bus")
     st.markdown("**Smart Demand Dashboard**")
+    
+    # Statistik dataset yang berhasil di-load
+    st.caption(f"📊 {len(CORRIDORS)} koridor aktif · {TOTAL_GEOCODED}/{TOTAL_HALTE} halte berkoordinat")
     st.divider()
 
     # Dropdown pilih koridor bus
@@ -250,13 +298,24 @@ with st.sidebar:
     selected_date = st.date_input("Tanggal", value=datetime.now())
 
     st.divider()
-    st.markdown("**Simulasi Cuaca**")
+    st.markdown("**Cuaca (Fitur ML)**")
     
-    # Slider suhu (24°C - 38°C), digunakan sebagai fitur input ke model ML
-    suhu_sim = st.slider("Suhu (°C)", 24, 38, 32)
+    # Pilihan untuk menggunakan cuaca asli dari BMKG atau simulasi manual
+    use_bmkg = st.sidebar.toggle("Gunakan Cuaca Asli (API BMKG)", value=True)
     
-    # Toggle hujan — jika aktif, prediksi penumpang akan berkurang
-    hujan_sim = st.toggle("Hujan", value=False)
+    if use_bmkg:
+        # Ambil cuaca dari BMKG
+        bmkg_data = get_bmkg_weather_surabaya()
+        suhu_sim = bmkg_data["suhu"]
+        hujan_sim = bmkg_data["hujan"]
+        st.info(f"📍 **Surabaya Saat Ini**\n\nSuhu: {suhu_sim}°C\n\nKondisi: {bmkg_data['desc'].title()}")
+    else:
+        st.caption("Mode Simulasi Aktif")
+        # Slider suhu (24°C - 38°C), digunakan sebagai fitur input ke model ML
+        suhu_sim = st.slider("Suhu (°C)", 24, 38, 32)
+        
+        # Toggle hujan — jika aktif, prediksi penumpang akan berkurang
+        hujan_sim = st.toggle("Simulasi Hujan", value=False)
 
     # Toggle auto-refresh — jika aktif, halaman otomatis di-refresh tiap 30 detik
     # Default OFF agar halaman tidak berkedip saat pertama dibuka
@@ -544,9 +603,14 @@ st.divider()  # Garis pemisah horizontal
 # =============================================================================
 st.markdown('<div class="section-title">Rekomendasi Armada — Semua Koridor</div>', unsafe_allow_html=True)
 
-# Kumpulkan data prediksi untuk setiap koridor
+# Kumpulkan data prediksi untuk setiap koridor (top 10 terbesar)
+# Pastikan koridor yang sedang dipilih selalu termasuk
+table_corridors = dict(sorted_corridors[:MAX_HEATMAP_CORRIDORS]) if 'sorted_corridors' in dir() else CORRIDORS
+if selected_corridor not in table_corridors:
+    table_corridors[selected_corridor] = CORRIDORS[selected_corridor]
+
 table_rows = []
-for corridor, info in CORRIDORS.items():
+for corridor, info in table_corridors.items():
     res = call_fastapi(corridor, selected_jam, selected_date.strftime("%Y-%m-%d"), suhu_sim, hujan_sim)
     table_rows.append({
         "Koridor": corridor.split(":")[1].strip(),  # Ambil nama setelah titik dua
@@ -605,9 +669,14 @@ st.divider()
 st.markdown('<div class="section-title">Heatmap Demand — Koridor × Jam</div>', unsafe_allow_html=True)
 
 # Bangun matriks data: tiap elemen = prediksi penumpang [koridor][jam]
+# Batasi ke 10 koridor terbesar (berdasarkan jumlah halte) agar heatmap tetap responsif
+MAX_HEATMAP_CORRIDORS = 10
+sorted_corridors = sorted(CORRIDORS.items(), key=lambda x: len(x[1]["stops"]), reverse=True)
+heatmap_corridors = dict(sorted_corridors[:MAX_HEATMAP_CORRIDORS])
+
 heatmap_data = []
-corridor_labels = [c.split(":")[1].strip() for c in CORRIDORS.keys()]  # Label nama koridor
-for i, (corridor, info) in enumerate(CORRIDORS.items()):
+corridor_labels = [c.split(":")[1].strip() for c in heatmap_corridors.keys()]  # Label nama koridor
+for corridor, info in heatmap_corridors.items():
     row = []
     for h in range(5, 23):  # Untuk setiap jam operasional
         res = call_fastapi(corridor, h, selected_date.strftime("%Y-%m-%d"), suhu_sim, hujan_sim)
@@ -630,8 +699,9 @@ fig_heat = go.Figure(data=go.Heatmap(
     hoverongaps=False,
     hovertemplate="Koridor: %{y}<br>Jam: %{x}<br>Penumpang: %{z}<extra></extra>",
 ))
+heatmap_height = max(220, len(heatmap_corridors) * 35)  # Tinggi dinamis berdasarkan jumlah koridor
 fig_heat.update_layout(
-    height=220,
+    height=heatmap_height,
     margin=dict(t=10, b=40, l=0, r=0),
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
