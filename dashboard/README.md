@@ -1,6 +1,6 @@
-# P4 · Dashboard & Visualisasi GIS — Suroboyo Bus & Wara-Wiri
+# P4 · Dashboard & Visualisasi GIS — Suroboyo Bus
 
-Dashboard Streamlit interaktif untuk visualisasi dan prediksi *demand* penumpang Suroboyo Bus dan angkutan *feeder* Wara-Wiri di Surabaya secara *real-time*.
+Dashboard Streamlit interaktif untuk visualisasi dan prediksi *demand* penumpang Suroboyo Bus di Surabaya secara *real-time*.
 
 ## ✨ Fitur Utama
 - 🗺️ **Peta GIS Interaktif (Folium)** — Heatmap halte per rute dengan status kapasitas (SURGE/NORMAL/LOW).
