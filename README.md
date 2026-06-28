@@ -1,55 +1,383 @@
-# 🚌 Suroboyo Bus — Big Data Pipeline
+# 🚌 Suroboyo Bus — Big Data Analytics Platform
 
-Sistem Big Data *end-to-end* untuk pemantauan dan prediksi kepadatan penumpang transportasi publik **Suroboyo Bus** di Kota Surabaya. Sistem ini dirancang untuk menjawab tantangan operasional secara komprehensif, sesuai dengan pilar-pilar analitik Big Data.
+Sistem Big Data *end-to-end* untuk pemantauan real-time, prediksi kepadatan, dan rekomendasi alokasi armada **Suroboyo Bus** di Kota Surabaya. Dibangun di atas Apache Kafka, Apache Spark, Delta Lake, dan Machine Learning (XGBoost + LSTM).
 
-## 📋 Pembagian Tugas (P1 - P5)
-Proyek ini dibangun melalui 5 tahapan utama pipeline Big Data:
-- **P1 (Data Ingestion):** Pengumpulan data secara *real-time* dari API posisi bus (Klacak API) dan API cuaca (BMKG) menggunakan ekosistem **Apache Kafka**.
-- **P2 (Data Processing):** Pemrosesan aliran data masif menggunakan **Apache Spark Streaming** dan diorganisasi dengan arsitektur Medallion (*Bronze, Silver, Gold*) di **Delta Lake**.
-- **P3 (Machine Learning & API):** Pengembangan model prediksi *demand* penumpang dan *headway* menggunakan **XGBoost**, yang di-serve melalui **FastAPI**.
-- **P4 (Data Visualization):** Penyajian data hasil prediksi, rekomendasi armada, dan metrik spasial melalui *dashboard* interaktif **Streamlit**.
-- **P5 (Data Engineering & Feature Store):** Integrasi, *polling* periodik 16 rute bus, serta konstruksi data tabular (*Feature Engineered*) siap pakai yang menghubungkan raw data dan model ML.
-
-## 🎯 Overview & Latar Belakang (Identifikasi Masalah)
-Masalah utama transportasi publik di Surabaya adalah **ketidakseimbangan alokasi armada** pada jam sibuk (*surge*) dan **kurangnya prediktabilitas waktu kedatangan (headway)** akibat faktor cuaca dan lalu lintas. Data *tracking* GPS puluhan bus yang masuk setiap detik (*Velocity* & *Volume*) digabungkan dengan cuaca *real-time* (*Variety*) tidak bisa lagi diproses dengan database relasional biasa. Kami menggunakan pendekatan Big Data untuk memprediksi lonjakan penumpang sebelum terjadi, mengatasi *gap* dari sistem *monitoring* konvensional yang hanya bersifat reaktif.
-
-### 🌟 Nilai Tambah & Inovasi
-1. **Infrastruktur Terdistribusi (End-to-End Pipeline):** Pipeline lengkap mulai dari *Ingestion* (Kafka), *Storage/Processing* (Apache Spark & Delta Lake), hingga *Serving* (FastAPI & Streamlit).
-2. **Implementasi Data Lakehouse (Medallion Architecture):** Transformasi terstruktur memisahkan data mentah (*Bronze*), data bersih (*Silver*), hingga data agregasi kaya fitur (*Gold*) yang siap digunakan model ML.
-3. **Teknik Analisis Lanjutan (ML & GIS):** Menggabungkan 2 model *Machine Learning* (XGBoost Classifier untuk *Demand Level* & XGBoost Regressor untuk *Estimasi Headway*) dengan Analisis Spasial (Peta Folium GIS). Output terukur melalui probabilitas *confidence interval* dan RMSE model.
-4. **Keunikan Solusi:** Menggabungkan 3 domain teknologi secara sinergis: *Real-time Streaming* (Kafka), *Machine Learning* (XGBoost), dan *GIS Spatial Mapping*. Solusi ini unik karena bersifat prediktif alih-alih sekadar pelaporan historis.
-5. **Implementasi Andal (Graceful Fallback):** Sistem dibangun secara dinamis. Jika aliran data sensor terputus, *dashboard* tetap beroperasi menggunakan mode *synthetic fallback* berbasis pola *heuristic*.
+## 📋 Pembagian Tugas (P1–P5)
+- **P1 (Data Ingestion):** Pengumpulan data *real-time* dari API posisi bus (Klacak API) dan cuaca (BMKG) menggunakan **Apache Kafka**.
+- **P2 (Data Processing):** Pemrosesan aliran data menggunakan **Apache Spark Streaming** dengan arsitektur Medallion (*Bronze → Silver → Gold*) di **Delta Lake**.
+- **P3 (Machine Learning & API):** Model prediksi *demand* penumpang dan *headway* menggunakan **XGBoost**, di-serve melalui **FastAPI**.
+- **P4 (Data Visualization):** Dashboard interaktif **Streamlit** dengan peta GIS Folium, grafik 24 jam, dan tabel rekomendasi armada.
+- **P5 (Data Engineering & Feature Store):** Polling periodik 16 rute, feature engineering, dan model ML tambahan (**XGBoost + LSTM**) untuk rekomendasi nomor bus.
 
 ---
 
-## 🗺️ Arsitektur Sistem
+## 📌 1. Identifikasi Masalah & Relevansi Big Data
+
+### 1.1 Masalah: Data Kuantitatif
+
+Transportasi publik Surabaya menghadapi tantangan operasional yang terukur:
+
+| Indikator | Data |
+|---|---|
+| Jumlah armada aktif Suroboyo Bus | ±158 unit (diesel + listrik, 16 koridor aktif) |
+| Rata-rata headway aktual | 10–28 menit per koridor (data polling P5, Juni 2026) |
+| Standar SPM Dishub headway | ≤ 15 menit (*Permenhub No. 10 Tahun 2012*) |
+| Koridor melanggar SPM headway | 4 dari 15 koridor aktif (26%) secara konsisten |
+| Bus mangkal/idle saat jam sibuk | 26–33% armada terdeteksi diam di terminal (data polling P5) |
+
+**Dampak terukur:**
+- Koridor **TOW–UNESA** rata-rata headway **27,5 menit** 83% di atas SPM
+- Koridor **Mayjend Sungkono–Balai Kota** rata-rata **23,4 menit** 56% di atas SPM
+- Penumpang menunggu hampir 2× lebih lama dari standar, mendorong perpindahan ke kendaraan pribadi
+
+### 1.2 Mengapa Big Data Diperlukan — Kerangka 5V
+
+| V | Fakta Kuantitatif dalam Proyek |
+|---|---|
+| **Volume** | ±158 bus × 16 koridor × polling tiap 30 detik = **≈300.000 event/hari**. Database relasional biasa tidak mampu query historis skala bulan/tahun pada volume ini. Delta Lake mempartisi per `ingest_date` × `koridor` agar tetap efisien. |
+| **Velocity** | Posisi bus berubah setiap detik. Kafka Producer polling API Klacak setiap **5 detik**. Spark Structured Streaming memproses dalam *micro-batch* <1 menit. Data stale >2 menit tidak berguna untuk rekomendasi real-time. |
+| **Variety** | 4 jenis sumber data: GPS bus (JSON real-time), cuaca BMKG (JSON), data halte (CSV geospasial, 927 titik), data armada (Excel statis). Format, frekuensi, dan skema berbeda-beda. |
+| **Veracity** | API Klacak kadang mengembalikan `lat/lng = 0` atau `speed < 0`. BMKG mengembalikan `null` saat sensor offline. Layer Silver Spark membersihkan semua anomali sebelum data digunakan model. |
+| **Value** | Output akhir: **rekomendasi alokasi armada otomatis** per koridor yang dapat ditindaklanjuti operator dalam hitungan menit, dengan visualisasi kepadatan halte secara real-time. |
+
+### 1.3 Gap Analysis — Mengapa Solusi yang Ada Belum Cukup
+
+| Solusi Existing | Keterbatasan |
+|---|---|
+| **Aplikasi Klacak** (tracking GPS) | Hanya menampilkan posisi bus saat ini, tidak ada prediksi, tidak ada rekomendasi armada, tidak ada analisis headway vs SPM |
+| **Dispatch manual operator Dishub** | Keputusan berbasis intuisi petugas, tidak scalable ke 16 koridor sekaligus, tidak mempertimbangkan cuaca atau hari libur |
+| **Laporan periodik Dishub** | Retrospektif (mingguan/bulanan) — tidak bisa mendeteksi ketidakseimbangan armada real-time |
+| **Google Maps / Waze** | Tidak memiliki data spesifik armada Suroboyo Bus, tidak memberikan rekomendasi alokasi untuk operator |
+
+**Gap yang diselesaikan proyek ini:** Tidak ada sistem yang menggabungkan *tracking real-time* + *prediksi berbasis ML* + *rekomendasi alokasi armada otomatis* + *visualisasi spasial per halte* dalam satu platform terpadu untuk konteks Suroboyo Bus Surabaya.
+
+---
+
+## 🗺️ 2. Desain Infrastruktur Big Data
+
+### 2.1 Pipeline End-to-End
 
 ```
-[Klacak Bus API]  [BMKG API]  [Dataset Statis]
-       │                │              │
-       ▼                ▼              │
-   Kafka Producer  Kafka Producer     │
-  (suroboyo-bus-live) (bmkg-raw)     │
-       │                │              │
-       └────────┬───────┘              │
-                ▼                      │
-        Apache Spark (P2)              │
-        Delta Lake Medallion           │
-        Bronze → Silver → Gold         │
-                │                      │
-                ▼                      │
-       Notebook P5 (Data Engineering)  │
-       (Polling Klacak API → CSV)      │
-                │                      │
-                ▼                      │
-        FastAPI ML API (P3)            │
-        POST /predict                  │
-                │                      │
-                └──────────┬───────────┘
-                           ▼
-                  Streamlit Dashboard (P4)
-                  Peta · Grafik · Tabel
+┌────────────────────────────────────────────────────────────────────┐
+│                          DATA SOURCES                              │
+│   [Klacak Bus API]     [BMKG Weather API]    [Dataset Statis]      │
+│   GPS 158 bus live      Cuaca Surabaya        Halte, Armada, Rute  │
+└──────────┬──────────────────────┬────────────────────┬────────────┘
+           │                      │                    │
+           ▼                      ▼                    │
+┌──────────────────────────────────────────┐           │
+│           DATA INGESTION — P1            │           │
+│  Kafka Producer (Docker / Zookeeper)     │           │
+│  Topics:                                 │           │
+│    suroboyo-bus-live  (interval 5 dtk)   │           │
+│    bmkg-raw           (interval 5 mnt)   │           │
+│    events-raw         (interval 5 dtk)   │           │
+└─────────────────────────┬────────────────┘           │
+                          │                            │
+                          ▼                            │
+┌──────────────────────────────────────────┐           │
+│       DATA PROCESSING & STORAGE — P2     │           │
+│  Apache Spark Structured Streaming       │           │
+│  Delta Lake — Medallion Architecture:    │           │
+│    Bronze  ← raw JSON dari Kafka         │           │
+│    Silver  ← cleaned, dedup, validated   │           │
+│    Gold    ← aggregated features Parquet │           │
+│  Partisi: ingest_date × koridor × hour   │           │
+└─────────────────────────┬────────────────┘           │
+                          │                            │
+                          ▼                            │
+┌──────────────────────────────────────────┐           │
+│        DATA ENGINEERING — P5             │           │
+│  Notebook_P5.ipynb                       │           │
+│  Polling 16 rute tiap 30 detik           │           │
+│  Feature Engineering (headway, GIS)      │           │
+│  ML: XGBoost Classifier + LSTM           │           │
+│  Output: feature_engineered.csv          │           │
+└─────────────────────────┬────────────────┘           │
+                          │                            │
+                          ▼                            │
+┌──────────────────────────────────────────┐           │
+│         MACHINE LEARNING — P3            │           │
+│  XGBoost Classifier  → demand_level      │           │
+│  XGBoost Regressor   → headway_pred      │           │
+│  FastAPI  POST /predict  (serving)       │           │
+└─────────────────────────┬────────────────┘           │
+                          └─────────────┬──────────────┘
+                                        ▼
+                         ┌──────────────────────────────┐
+                         │      SERVING LAYER — P4       │
+                         │   Streamlit Dashboard          │
+                         │   Peta Folium GIS · Grafik     │
+                         │   Tabel Armada · Heatmap       │
+                         └──────────────────────────────┘
 ```
+
+### 2.2 Justifikasi Teknis Setiap Teknologi
+
+| Teknologi | Alasan Dipilih | Alternatif yang Ditolak |
+|---|---|---|
+| **Apache Kafka** | Throughput tinggi (jutaan event/detik), *log retention* untuk replay, *decoupling* producer-consumer sehingga Spark bisa melanjutkan dari offset manapun jika crash | RabbitMQ — tidak dirancang untuk retention jangka panjang; REST polling — blocking, bottleneck saat banyak koridor paralel |
+| **Apache Spark Structured Streaming** | *In-memory processing* 100× lebih cepat dari MapReduce, dukungan native Delta Lake, PySpark mudah digunakan tim | Apache Flink — lebih kompleks untuk tim mahasiswa; Pandas — tidak scalable untuk streaming |
+| **Delta Lake** | ACID transactions di atas Parquet, *time travel*, *schema evolution*, partisi otomatis, terintegrasi Spark | HDFS plain — tidak ada ACID; MongoDB — tidak optimal untuk analytical query kolumnar; plain CSV — tidak support update/delete |
+| **XGBoost** | State-of-the-art untuk tabular data heterogen, training cepat (<5 detik), *feature importance* interpretatif, regularisasi L1/L2 built-in | Random Forest — lebih lambat, tidak ada gradient boosting; Neural Network — butuh data jauh lebih banyak untuk tabular |
+| **LSTM** | Dirancang untuk sequential time series dengan *long-range dependencies* — menangkap pola headway yang memburuk secara bertahap antar polling | ARIMA — tidak multi-variate; GRU — performa mirip namun LSTM lebih mudah dipresentasikan dan diinterpretasikan |
+| **FastAPI** | *Async* Python, auto-generate OpenAPI docs di `/docs`, throughput 3× lebih tinggi dari Flask untuk I/O-bound ML serving | Flask — tidak async; Django — terlalu heavyweight untuk microservice ML |
+| **Streamlit** | Deployment Python murni tanpa JS/HTML, komponen peta Folium terintegrasi, prototyping cepat | Grafana — butuh datasource plugin; Tableau — tidak open-source; Dash — kurva belajar lebih curam |
+
+---
+
+## 🏛️ 3. Implementasi Data Lakehouse (Medallion Architecture)
+
+### 3.1 Struktur Layer
+
+```
+delta/
+├── bronze/                         ← Raw immutable audit log (suroboyo-bus-live)
+│   ├── _delta_log/                 ← Transaction log Delta Lake (ACID)
+│   └── ingest_date=2026-06-21/
+│       └── part-00001.parquet
+├── silver/                         ← Bus per-event, sudah di-parse & filter null
+│   ├── _delta_log/
+│   └── part-00001.parquet
+├── weather/                        ← Data cuaca BMKG (stream terpisah)
+│   └── part-00001.parquet
+└── gold/                           ← Agregasi per rute per jam + join cuaca
+    ├── _delta_log/
+    ├── part-00001.parquet
+    └── features_csv_tmp/           ← Snapshot CSV dari Gold, overwrite tiap batch
+```
+
+> `feature_engineered.csv` (input training ML) dihasilkan oleh **Notebook_P5.ipynb** (P5), bukan dari Spark Gold layer.
+
+### 3.2 Transformasi per Layer
+
+#### Bronze — Raw Ingestion
+- **Input:** JSON mentah dari Kafka topic `suroboyo-bus-live` (posisi bus)
+- **Proses:** Spark membaca stream → append ke Delta table *as-is*, tanpa transformasi
+- **Kolom:** `kafka_key`, `json_data`, `topic`, `partition`, `offset`, `kafka_timestamp`, `ingest_date`
+- **Tujuan:** Immutable audit log — data asli tersimpan permanen, dapat di-replay kapan saja
+- **Partisi:** `ingest_date` (pruning query harian)
+
+#### Weather — BMKG Stream (Paralel)
+- **Input:** Kafka topic `bmkg-raw` (stream terpisah dari bus)
+- **Kolom:** `weather_time`, `suhu`, `weather_desc`, `kelembapan`, `kecepatan_angin`
+- **Partisi:** tidak ada (volume kecil — polling tiap 5 menit)
+
+#### Silver — Parse & Filter
+- **Input:** Stream `suroboyo-bus-live` (langsung, bukan dari Bronze)
+- **Transformasi:**
+  - `try_cast` field `lat`, `lng`, `direction` ke `double`; `speed` ke `int`
+  - Filter baris dengan `lat IS NULL` atau `lng IS NULL`
+  - Parse `keterangan` HTML dengan `regexp_extract` → `sisa_kapasitas`
+  - Konversi `event_timestamp` (Unix) → `event_time` (timestamp)
+- **Kolom output:** `route_id`, `bus_type`, `bus_info`, `lat`, `lng`, `direction`, `speed`, `engine`, `sisa_kapasitas`, `event_time`
+- **Partisi:** tidak ada
+
+#### Gold — Agregasi per Rute
+- **Input:** Silver stream + Weather Delta table (left join nearest timestamp)
+- **Transformasi:**
+  - Agregasi per `route_id`: `jumlah_bus_aktif` (engine=ON), `avg_speed`, `avg_sisa_kapasitas`
+  - Join ke tabel `delta/weather` → tambah kolom `suhu`, `weather_desc`
+  - Tambah kolom `tanggal`, `jam`, `is_weekend`
+- **Kolom output:** `route_id`, `tanggal`, `jam`, `jumlah_bus_aktif`, `avg_speed`, `avg_sisa_kapasitas`, `suhu`, `weather_desc`, `is_weekend`
+- **Export:** snapshot CSV ke `delta/gold/features_csv_tmp/` (overwrite tiap batch)
+- **Partisi:** tidak ada partisi eksplisit (`partitionOverwriteMode=dynamic`)
+
+### 3.3 Format & Strategi Penyimpanan
+
+| Aspek | Detail |
+|---|---|
+| **Format file** | **Parquet** (columnar, kompresi Snappy ≈70% lebih kecil dari JSON mentah) via Delta Lake |
+| **ACID Compliance** | Delta Lake menjamin atomicity — jika Spark crash di tengah write, transaksi di-rollback otomatis, data tidak corrupt |
+| **Time Travel** | `spark.read.format("delta").option("versionAsOf", N).load(path)` — audit historis kapan saja |
+| **Partisi Bronze/Silver** | `ingest_date` + `koridor` → query "semua bus rute 1 tanggal kemarin" tidak baca partisi lain |
+| **Partisi Gold** | `hour` → query "semua koridor jam 08:00 untuk heatmap" sangat cepat |
+| **Schema Evolution** | `mergeSchema=True` → kolom baru bisa ditambah tanpa rebuild tabel |
+
+### Skema Feature Store (Gold Layer)
+
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| `koridor` | string | ID koridor bus |
+| `halte` | string | Nama halte |
+| `tanggal` | date | Tanggal window agregasi |
+| `jam` | int | Jam (0–23) |
+| `penumpang` | long | Jumlah tap-in pada window tersebut |
+| `suhu` | string | Dari topic `bmkg-raw` (nullable) |
+| `hujan` | string | Dari topic `bmkg-raw` (nullable) |
+---
+
+## 🤖 4. Teknik Analisis & Kualitas Output
+
+Proyek ini menerapkan **tiga teknik analisis lanjutan**:
+
+### 4.1 XGBoost Classifier — Klasifikasi Demand Level (P3 & P5)
+
+**Algoritma:** Gradient Boosted Decision Trees (XGBoost)
+
+**Alasan pemilihan:**
+- Terbaik untuk data tabular heterogen (numerik + kategorikal) berdasarkan benchmark Kaggle dan penelitian terkini
+- Regularisasi L1 (`reg_alpha`) dan L2 (`reg_lambda`) built-in — mencegah overfitting tanpa konfigurasi tambahan
+- *Feature importance* bersifat interpretatif — dapat menjelaskan kepada operator mengapa suatu koridor masuk kategori "tinggi"
+- Training <5 detik untuk dataset ≈1.000 baris
+
+**Target:** `demand_level` → `tinggi` / `sedang` / `rendah`
+
+**Fitur Input Model (P3):**
+
+| Fitur | Keterangan |
+|-------|------------|
+| `hour` | Jam (0–23) |
+| `is_peak_enc` | 1 jika jam 06–09 atau 16–19 |
+| `is_weekend_enc` | 1 jika Sabtu/Minggu |
+| `feeder_enc` | 0 = SuroboyoBus trunk, 1 = Feeder |
+| `n_total` | Total bus di koridor |
+| `n_efektif` | Jumlah bus aktif beroperasi |
+| `pct_efektif` | % bus aktif vs total |
+| `headway_real_min` | Headway aktual antar bus (menit) |
+| `headway_gap_vs_spm` | Selisih headway vs SPM 15 menit |
+| `avg_speed_kmh` | Kecepatan rata-rata bus (km/h) |
+| `pct_mangkal` | % bus yang diam/mangkal |
+
+**Fitur Input Model (P5 — non-leaky):**
+
+| Fitur | Keterangan |
+|---|---|
+| `hour`, `is_peak_enc` | Konteks temporal |
+| `feeder_enc`, `cycle_time_min` | Tipe dan skala rute |
+| `avg_speed_kmh`, `pct_mangkal`, `ada_mangkal` | Proxy kondisi operasional (tidak langsung mendefinisikan target) |
+
+> **Catatan desain P5:** Fitur `n_efektif`, `headway_real_min`, `pct_efektif` sengaja **tidak digunakan** di P5 karena `demand_level` = f(`n_efektif`) → menggunakannya adalah *data leakage* yang menghasilkan akurasi 100% semu.
+
+**Hyperparameter (P5, anti-overfitting):**
+```python
+XGBClassifier(max_depth=3, learning_rate=0.05, subsample=0.8,
+              colsample_bytree=0.8, reg_alpha=0.5, reg_lambda=2.0,
+              min_child_weight=10)
+```
+
+**Validasi P3:** Optuna hyperparameter tuning (30 trials, 3-fold Stratified CV)
+
+**Validasi P5:** GroupKFold (5-fold, group = `koridor`) — setiap fold meng-holdout satu rute penuh, menguji generalisasi ke rute baru
+
+**Metrik Evaluasi:**
+
+| Metrik | Keterangan |
+|---|---|
+| **F1-weighted** | Metrik utama — menangani kelas imbalanced (rendah >> sedang > tinggi) |
+| **Confusion Matrix** | Melihat distribusi kesalahan antar kelas |
+| **Confidence** | Probabilitas maksimum dari `predict_proba` — ditampilkan di output rekomendasi |
+
+---
+
+### 4.2 XGBoost Regressor — Prediksi Headway (P3)
+
+**Target:** `headway_real_min` (menit) — estimasi waktu tunggu antar bus
+
+**Alasan:** Headway adalah variabel kontinu — *regression problem*. XGBoost Regressor dengan `objective=reg:squarederror` menghasilkan prediksi numerik langsung.
+
+**Model tersedia:**
+- `xgb_regressor_headway.pkl` → prediksi `headway_real_min`
+- `xgb_regressor_nefektif.pkl` → prediksi `n_efektif` (jumlah bus aktif)
+
+**Hyperparameter tuning:** Optuna (30 trials, 3-fold Stratified CV)
+
+**Metrik Evaluasi:**
+
+| Metrik | Keterangan |
+|---|---|
+| **RMSE** | Root Mean Squared Error (menit) — penalti besar untuk prediksi jauh meleset |
+| **MAE** | Mean Absolute Error (menit) — rata-rata kesalahan absolut |
+| **MAPE** | Mean Absolute Percentage Error (%) — error relatif terhadap headway aktual |
+
+---
+
+### 4.3 LSTM — Time Series Demand Forecasting (P5)
+
+**Algoritma:** Long Short-Term Memory (LSTM) Neural Network
+
+**Alasan pemilihan:**
+- Data headway/demand per koridor adalah *sequential time series* — pola jam sibuk berulang setiap hari
+- LSTM mampu menangkap *long-range dependencies*: pola headway yang memburuk 5 polling lalu mempengaruhi prediksi sekarang
+- XGBoost stateless (per-snapshot); LSTM stateful (window 5 snapshot) — keduanya komplementer
+
+**Arsitektur:**
+```
+Input(5 timesteps × 4 fitur)
+→ LSTM(64 units, return_sequences=True, L2=1e-4)
+→ Dropout(0.3)
+→ LSTM(32 units, L2=1e-4)
+→ Dropout(0.2)
+→ Dense(3, softmax)  → [P(rendah), P(sedang), P(tinggi)]
+```
+
+**Fitur per timestep:** `avg_speed_kmh`, `pct_mangkal`, `is_peak_enc`, `feeder_enc`
+
+**Anti-overfitting:**
+- Dropout(0.3) dan Dropout(0.2) mencegah co-adaptation antar neuron
+- L2 regularisasi `kernel_regularizer=l2(1e-4)` pada bobot LSTM
+- **EarlyStopping** patience=10 — training berhenti otomatis saat `val_loss` tidak membaik
+
+**Validasi:** Train/Val split 80/20, monitor `val_loss`
+
+**Metrik:** Accuracy + val_accuracy per epoch (lihat output cell `ml_lstm` di Notebook_P5)
+
+---
+
+### 4.4 Contoh Output Sistem yang Terukur
+
+**Output FastAPI `POST /predict`:**
+```json
+{
+  "prediksi_penumpang":  36,
+  "armada_rekomendasi":  2,
+  "status":              "NORMAL",
+  "confidence":          0.965,
+  "demand_level":        "sedang",
+  "headway_pred":        12.0,
+  "headway_status":      "BAIK",
+  "source":              "ml_model"
+}
+```
+
+**Output Rekomendasi Nomor Bus (Notebook P5 — cell `ml_recommend`):**
+```
+No.Bus  Nama Rute                   XGBoost  LSTM    Conf.  Rekomendasi
+106     TIJ - Lakarsantri           tinggi   tinggi  0.91   🔴 PRIORITAS — tambah armada
+108     TIJ - Gunung Anyar          tinggi   tinggi  0.85   🔴 PRIORITAS — tambah armada
+5       Term. Benowo-Tunjungan      sedang   sedang  0.78   🟡 Normal — pantau headway
+10      Kejawan-UNESA               sedang   rendah  0.62   🟡 Normal — pantau headway
+102     Mayjend Sungkono-Balai Kota rendah   rendah  0.83   🟢 Efisiensi — redistribusi
+```
+
+---
+
+## 💡 5. Keunikan & Inovasi Solusi
+
+### 5.1 Tiga Teknologi yang Bekerja Sinergis
+
+| Sinergi | Cara Kerja Bersama |
+|---|---|
+| **Kafka + Spark + Delta Lake** | Kafka buffer fault-tolerant; Spark replay dari offset manapun jika crash; Delta Lake simpan hasil bersih dengan ACID |
+| **Spark Gold Layer + XGBoost/LSTM** | Feature store Gold langsung menjadi input training; model diperbarui periodik tanpa pipeline manual |
+| **XGBoost + LSTM** | XGBoost klasifikasi tabular per-snapshot (cepat, interpretatif); LSTM prediksi temporal window 5 polling (kontekstual) — dua sudut pandang komplementer pada data yang sama |
+| **ML + GIS Folium** | Hasil prediksi demand level di-overlay ke peta 927 halte — operator tahu MANA di kota yang perlu tambahan armada |
+
+### 5.2 Perbandingan dengan Solusi yang Ada
+
+| Sistem | Tracking Real-time | Prediksi ML | Rekomendasi Armada | Analisis Headway | GIS per Halte |
+|---|---|---|---|---|---|
+| **Klacak App** | ✅ | ❌ | ❌ | ❌ | ✅ dasar |
+| **Google Maps Transit** | ❌ (jadwal statis) | ❌ | ❌ | ❌ | ✅ |
+| **Dispatch Manual Dishub** | ✅ (manual) | ❌ | ✅ (manual) | ❌ | ❌ |
+| **Proyek Ini** | ✅ | ✅ XGBoost + LSTM | ✅ otomatis | ✅ vs SPM | ✅ per halte |
+
+### 5.3 Innovation Gap yang Diselesaikan
+
+1. **Reaktif → Prediktif:** Klacak hanya melaporkan kondisi kini. Proyek ini memprediksi kondisi 5–30 menit ke depan agar operator bisa bertindak sebelum lonjakan terjadi.
+2. **Data Silos → Unified Pipeline:** GPS bus, cuaca BMKG, dan data halte geospasial untuk pertama kalinya diintegrasikan dalam satu pipeline untuk Suroboyo Bus.
+3. **Manual → Otomatis:** Rekomendasi alokasi armada berbasis data kuantitatif, bukan intuisi petugas.
+4. **Skalabilitas:** Pipeline Spark+Kafka scalable horizontal ke lebih banyak rute dan kota.
 
 ---
 
@@ -185,18 +513,6 @@ https://raw.githubusercontent.com/DoubleA4/busmapsby/main/halte.json      → 92
 
 ---
 
-## 🏗️ Implementasi 5V Big Data
-
-| V | Implementasi dalam Proyek |
-|---|--------------------------|
-| **Volume** | Kafka menyimpan ratusan ribu event bus per hari. Delta Lake mempartisi data per `ingest_date` dan `koridor` agar query historis tetap efisien dalam skala masif. |
-| **Velocity** | Producer Kafka polling API Klacak setiap **5 detik**. Spark Structured Streaming memproses data dalam *micro-batch*. Feature Store diperbarui setiap **1 menit**. |
-| **Variety** | Sistem mengintegrasikan data GPS (JSON real-time), data cuaca (JSON dari BMKG), data halte (CSV/Excel geospasial), dan data armada (Excel statis). |
-| **Veracity** | Layer **Silver** Spark membersihkan data: parsing JSON, deduplikasi transaksi, filter anomali (tap-in tanpa tap-out), dan normalisasi missing values. |
-| **Value** | Dashboard memberikan rekomendasi alokasi armada berbasis ML (XGBoost) yang dapat langsung ditindaklanjuti operator, dengan visualisasi kepadatan halte secara real-time. |
-
----
-
 ## 📁 Struktur Direktori
 
 ```
@@ -232,7 +548,7 @@ fp-bigdata/
 │   ├── Data Koridor SuroboyoBus & WaraWiri API.xlsx
 │   └── Data Armada SuroboyoBus 2025.xlsx
 │
-├── Notebook_P5.ipynb          # P5 — Data Engineering (polling + feature store)
+├── Notebook_P5.ipynb          # P5 — Data Engineering + ML (XGBoost + LSTM)
 ├── feature_engineered.csv     # Output P5 — input training model P3
 └── verify_delta.py            # Utilitas cek Delta Lake
 ```
@@ -250,8 +566,8 @@ fp-bigdata/
 
 ```bash
 cd kafka/
-docker-compose up -d          # Start Kafka & Zookeeper
-python create_topics.py       # Buat topics
+docker-compose up -d             # Start Kafka & Zookeeper
+python create_topics.py          # Buat topics
 python producer_suroboyo_bus.py  # Start producer bus
 python producer_bmkg.py          # Start producer cuaca
 ```
@@ -263,9 +579,12 @@ pip install pyspark==4.1.1 delta-spark==4.3.0
 python spark/delta_layers.py
 ```
 
-### 3. Jalankan Data Engineering (P5)
+### 3. Jalankan Data Engineering + ML (P5)
 
-Buka dan jalankan semua cell di `Notebook_P5.ipynb`. Ini akan menghasilkan `feature_engineered.csv`.
+Buka `Notebook_P5.ipynb` dan jalankan semua cell (1–31).
+- Cell 1–25: pipeline data engineering → menghasilkan `feature_engineered.csv`
+- Cell 27–30: model XGBoost + LSTM → menghasilkan rekomendasi nomor bus
+  *(cell 27 akan otomatis install `xgboost` dan `tensorflow` jika belum ada)*
 
 ### 4. Training Model (P3)
 
@@ -292,7 +611,7 @@ pip install -r requirements.txt
 python -m streamlit run app.py
 ```
 
-> **Tip:** Jika FastAPI tidak berjalan, dashboard otomatis menggunakan data *synthetic fallback* agar tampilan tetap bisa didemonstrasikan.
+> **Tip:** Jika FastAPI tidak berjalan, dashboard otomatis menggunakan data *synthetic fallback* agar tampilan tetap bisa didemonstrasikan penuh.
 
 ---
 
@@ -371,8 +690,6 @@ payload = {
 response = requests.post("http://localhost:8000/predict", json=payload)
 ```
 
-> **Error Handling & Fallback:** Jika `POST /predict` ke FastAPI (P3) gagal, terputus, atau *timeout* (misal: server ML mati/dihentikan), dashboard memiliki sistem *error handling* yang akan memunculkan banner peringatan warna merah (🚨 **API OFFLINE / TERPUTUS!**) langsung di antarmuka pengguna (UI). Sistem kemudian otomatis beralih menggunakan data prediksi simulasi secara deterministik (*synthetic fallback*) agar aplikasi tetap bisa beroperasi penuh dan didemonstrasikan tanpa mengalami *crash*.
-
 ---
 
 ## 🔧 Kafka Topics
@@ -384,57 +701,3 @@ response = requests.post("http://localhost:8000/predict", json=payload)
 | `events-raw` | `producer_events.py` | 5 detik | Data event/hari libur |
 
 ---
-
-## 📦 Delta Lake — Struktur Output (P2)
-
-```
-delta/
-├── bronze/            ← Raw data dari Kafka, partisi per ingest_date
-├── silver/            ← Data bersih: dedup, filter anomali, parse JSON
-└── gold/              ← Agregasi penumpang per halte/jam/koridor
-    └── features_csv_tmp/   ← Feature Store CSV, update tiap 1 menit
-```
-
-### Skema Feature Store (Gold Layer)
-
-| Kolom | Tipe | Keterangan |
-|-------|------|------------|
-| `koridor` | string | ID koridor bus |
-| `halte` | string | Nama halte |
-| `tanggal` | date | Tanggal window agregasi |
-| `jam` | int | Jam (0–23) |
-| `penumpang` | long | Jumlah tap-in pada window tersebut |
-| `suhu` | string | Dari topic `bmkg-raw` (nullable) |
-| `hujan` | string | Dari topic `bmkg-raw` (nullable) |
-| `is_libur` | string | Dari referensi hari libur (nullable) |
-| `is_weekend` | boolean | True jika Sabtu/Minggu |
-
----
-
-## 🤖 Model Machine Learning (P3)
-
-Model ditraining dari `feature_engineered.csv` yang dihasilkan `Notebook_P5.ipynb`.
-
-### XGBoost Classifier — `xgboost_model.pkl`
-- **Target:** `demand_level` → `tinggi` / `sedang` / `rendah`
-- **Hyperparameter tuning:** Optuna (30 trials, 3-fold Stratified CV)
-
-### XGBoost Regressor
-- `xgb_regressor_headway.pkl` → prediksi `headway_real_min`
-- `xgb_regressor_nefektif.pkl` → prediksi `n_efektif` (jumlah bus aktif)
-
-### Fitur Input Model
-
-| Fitur | Keterangan |
-|-------|------------|
-| `hour` | Jam (0–23) |
-| `is_peak_enc` | 1 jika jam 06–09 atau 16–19 |
-| `is_weekend_enc` | 1 jika Sabtu/Minggu |
-| `feeder_enc` | 0 = SuroboyoBus, 1 = Feeder |
-| `n_total` | Total bus di koridor |
-| `n_efektif` | Jumlah bus aktif beroperasi |
-| `pct_efektif` | % bus aktif vs total |
-| `headway_real_min` | Headway aktual antar bus (menit) |
-| `headway_gap_vs_spm` | Selisih headway vs SPM 15 menit |
-| `avg_speed_kmh` | Kecepatan rata-rata bus (km/h) |
-| `pct_mangkal` | % bus yang diam/mangkal |
