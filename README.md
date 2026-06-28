@@ -164,7 +164,7 @@ delta/
 - **Partisi:** tidak ada (volume kecil — polling tiap 5 menit)
 
 #### Silver — Parse & Filter
-- **Input:** Stream `suroboyo-bus-live` (langsung, bukan dari Bronze)
+- **Input:** Stream `suroboyo-bus-live`, `bmkg-raw`
 - **Transformasi:**
   - `try_cast` field `lat`, `lng`, `direction` ke `double`; `speed` ke `int`
   - Filter baris dengan `lat IS NULL` atau `lng IS NULL`
