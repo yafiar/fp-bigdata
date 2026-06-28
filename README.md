@@ -300,6 +300,9 @@ python -m streamlit run app.py
 
 Dashboard berbasis **Streamlit** ini adalah antarmuka utama yang dikonsumsi operator/pengguna akhir.
 
+![dashboard1](documentation/dashboard1.jpg)
+![dashboard1](documentation/dashboard2.jpg)
+
 ### Sumber Data yang Dikonsumsi
 
 | Sumber | Tipe | Keterangan |
