@@ -121,7 +121,6 @@ def status_badge(status: str) -> str:
     return f'<span class="{cls}">{status}</span>'
 
 
-@st.cache_data(ttl=30, show_spinner=False)
 def is_api_alive() -> bool:
     try:
         requests.get("http://localhost:8000/", timeout=0.2)
@@ -130,7 +129,6 @@ def is_api_alive() -> bool:
         return False
 
 
-@st.cache_data(ttl=60, show_spinner=False)
 def call_fastapi(corridor: str, jam: int, tanggal: str, suhu: float, hujan: bool, feeder: int = 0) -> dict:
     """
     Kirim request ke FastAPI dengan field feeder agar API bisa bedakan
