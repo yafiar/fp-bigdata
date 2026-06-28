@@ -13,7 +13,7 @@ Proyek ini dibangun melalui 5 tahapan utama pipeline Big Data:
 ## 🎯 Overview & Latar Belakang (Identifikasi Masalah)
 Masalah utama transportasi publik di Surabaya adalah **ketidakseimbangan alokasi armada** pada jam sibuk (*surge*) dan **kurangnya prediktabilitas waktu kedatangan (headway)** akibat faktor cuaca dan lalu lintas. Data *tracking* GPS puluhan bus yang masuk setiap detik (*Velocity* & *Volume*) digabungkan dengan cuaca *real-time* (*Variety*) tidak bisa lagi diproses dengan database relasional biasa. Kami menggunakan pendekatan Big Data untuk memprediksi lonjakan penumpang sebelum terjadi, mengatasi *gap* dari sistem *monitoring* konvensional yang hanya bersifat reaktif.
 
-### 🌟 Nilai Tambah & Inovasi (Rubrik Penilaian)
+### 🌟 Nilai Tambah & Inovasi
 1. **Infrastruktur Terdistribusi (End-to-End Pipeline):** Pipeline lengkap mulai dari *Ingestion* (Kafka), *Storage/Processing* (Apache Spark & Delta Lake), hingga *Serving* (FastAPI & Streamlit).
 2. **Implementasi Data Lakehouse (Medallion Architecture):** Transformasi terstruktur memisahkan data mentah (*Bronze*), data bersih (*Silver*), hingga data agregasi kaya fitur (*Gold*) yang siap digunakan model ML.
 3. **Teknik Analisis Lanjutan (ML & GIS):** Menggabungkan 2 model *Machine Learning* (XGBoost Classifier untuk *Demand Level* & XGBoost Regressor untuk *Estimasi Headway*) dengan Analisis Spasial (Peta Folium GIS). Output terukur melalui probabilitas *confidence interval* dan RMSE model.
