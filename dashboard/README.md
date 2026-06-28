@@ -57,6 +57,28 @@ Jika kamu ingin mendemonstrasikan keseluruhan ekosistem Big Data *(Ingestion →
 
 ---
 
+## 🎭 Skenario Demo Presentasi (Wow Factor)
+
+Saat presentasi di depan dosen/reviewer, ikuti langkah-langkah skenario ini agar semua fitur *advanced* terlihat jelas:
+
+1. **Pamerkan Auto-Inference ML (Sangat Penting):**
+   - **Tindakan:** Ubah jam prediksi dari siang hari (misal jam `12:00`) menjadi jam sibuk/pulang kerja (jam `17:00` atau `18:00`).
+   - **Penjelasan:** Tunjukkan kepada penguji bahwa sistem sangat cerdas. Di *backend*, API (FastAPI) secara otomatis menyadari bahwa jam 17:00 adalah *Rush Hour* (`is_peak=True`). Hal ini membuat prediksi ML langsung loncat (muncul notifikasi **SURGE ALERT** berwarna merah), status koridor berubah menjadi **SURGE**, dan rekomendasi armada otomatis bertambah.
+
+2. **Perbedaan Koridor Suroboyo Bus vs Feeder Wara-Wiri:**
+   - **Tindakan:** Ubah pilihan *dropdown* koridor dari Rute Utama (kode awalan SB) ke Rute Feeder (kode awalan FD/Wara-Wiri).
+   - **Penjelasan:** Perlihatkan bahwa kapasitas bus langsung berubah dari 60 penumpang (Trunk) menjadi 15 penumpang (Feeder). Tingkat pengisian (%) dan ambang batas *surge* akan menyesuaikan secara otomatis secara dinamis berkat fitur `feeder_enc` di ML.
+
+3. **Interaksi GIS Peta (Folium):**
+   - **Tindakan:** Klik pada lingkaran merah/hijau/biru yang ada di dalam peta halte Suroboyo.
+   - **Penjelasan:** Sistem GIS terintegrasi, menampilkan nama halte, jumlah penumpang spesifik di halte tersebut, koordinat, dan status kepadatan.
+
+4. **Pamerkan Sistem *Graceful Fallback* (Uji Ketahanan Sistem):**
+   - **Tindakan:** Buka Terminal tempat Uvicorn/FastAPI (P3) berjalan, lalu tekan `Ctrl+C` untuk mematikan server ML di tengah-tengah presentasi. Kemudian di dashboard, ubah jam atau ganti koridor.
+   - **Penjelasan:** UI **tidak akan crash**. Sebaliknya, akan muncul *banner* peringatan merah besar (🚨 **API OFFLINE / TERPUTUS!**) yang memberi tahu *user* bahwa sistem berpindah secara instan ke mode simulasi data (*synthetic fallback*). Ini akan menunjukkan kedewasaan aplikasi skala *Enterprise* yang kebal terhadap *downtime*.
+
+---
+
 ## 🔌 Detail Integrasi API (P3)
 
 Dashboard mengirim `POST` request ke FastAPI setiap kali kamu mengubah filter di *Sidebar* (Rute, Jam, Tanggal, atau Cuaca).

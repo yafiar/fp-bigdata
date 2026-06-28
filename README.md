@@ -2,6 +2,14 @@
 
 Sistem Big Data *end-to-end* untuk pemantauan dan prediksi kepadatan penumpang transportasi publik **Suroboyo Bus** di Kota Surabaya. Sistem ini dirancang untuk menjawab tantangan operasional secara komprehensif, sesuai dengan pilar-pilar analitik Big Data.
 
+## 📋 Pembagian Tugas (P1 - P5)
+Proyek ini dibangun melalui 5 tahapan utama pipeline Big Data:
+- **P1 (Data Ingestion):** Pengumpulan data secara *real-time* dari API posisi bus (Klacak API) dan API cuaca (BMKG) menggunakan ekosistem **Apache Kafka**.
+- **P2 (Data Processing):** Pemrosesan aliran data masif menggunakan **Apache Spark Streaming** dan diorganisasi dengan arsitektur Medallion (*Bronze, Silver, Gold*) di **Delta Lake**.
+- **P3 (Machine Learning & API):** Pengembangan model prediksi *demand* penumpang dan *headway* menggunakan **XGBoost**, yang di-serve melalui **FastAPI**.
+- **P4 (Data Visualization):** Penyajian data hasil prediksi, rekomendasi armada, dan metrik spasial melalui *dashboard* interaktif **Streamlit**.
+- **P5 (Data Engineering & Feature Store):** Integrasi, *polling* periodik 16 rute bus, serta konstruksi data tabular (*Feature Engineered*) siap pakai yang menghubungkan raw data dan model ML.
+
 ## 🎯 Overview & Latar Belakang (Identifikasi Masalah)
 Masalah utama transportasi publik di Surabaya adalah **ketidakseimbangan alokasi armada** pada jam sibuk (*surge*) dan **kurangnya prediktabilitas waktu kedatangan (headway)** akibat faktor cuaca dan lalu lintas. Data *tracking* GPS puluhan bus yang masuk setiap detik (*Velocity* & *Volume*) digabungkan dengan cuaca *real-time* (*Variety*) tidak bisa lagi diproses dengan database relasional biasa. Kami menggunakan pendekatan Big Data untuk memprediksi lonjakan penumpang sebelum terjadi, mengatasi *gap* dari sistem *monitoring* konvensional yang hanya bersifat reaktif.
 
@@ -363,7 +371,7 @@ payload = {
 response = requests.post("http://localhost:8000/predict", json=payload)
 ```
 
-> **Fallback:** Jika `POST /predict` gagal atau timeout, dashboard otomatis menggunakan data sintetis deterministik (seed dari jam + nama koridor) agar UI tidak crash.
+> **Error Handling & Fallback:** Jika `POST /predict` ke FastAPI (P3) gagal, terputus, atau *timeout* (misal: server ML mati/dihentikan), dashboard memiliki sistem *error handling* yang akan memunculkan banner peringatan warna merah (🚨 **API OFFLINE / TERPUTUS!**) langsung di antarmuka pengguna (UI). Sistem kemudian otomatis beralih menggunakan data prediksi simulasi secara deterministik (*synthetic fallback*) agar aplikasi tetap bisa beroperasi penuh dan didemonstrasikan tanpa mengalami *crash*.
 
 ---
 

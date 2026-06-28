@@ -248,19 +248,13 @@ with st.sidebar:
     selected_date = st.date_input("Tanggal", value=datetime.now())
 
     st.divider()
-    st.markdown("**Cuaca (Fitur ML)**")
+    st.markdown("**Kondisi Cuaca (BMKG)**")
 
-    use_bmkg = st.sidebar.toggle("Gunakan Cuaca Asli (API BMKG)", value=True)
-
-    if use_bmkg:
-        bmkg_data = get_bmkg_weather_surabaya()
-        suhu_sim = bmkg_data["suhu"]
-        hujan_sim = bmkg_data["hujan"]
-        st.info(f"📍 **Surabaya Saat Ini**\n\nSuhu: {suhu_sim}°C\n\nKondisi: {bmkg_data['desc'].title()}")
-    else:
-        st.caption("Mode Simulasi Aktif")
-        suhu_sim = st.slider("Suhu (°C)", 24, 38, 32)
-        hujan_sim = st.toggle("Simulasi Hujan", value=False)
+    # Menggunakan cuaca real-time dari BMKG (Fixed)
+    bmkg_data = get_bmkg_weather_surabaya()
+    suhu_sim = bmkg_data["suhu"]
+    hujan_sim = bmkg_data["hujan"]
+    st.info(f"📍 **Surabaya Saat Ini**\n\nSuhu: {suhu_sim}°C\n\nKondisi: {bmkg_data['desc'].title()}")
 
     auto_refresh = st.sidebar.toggle("Auto-refresh (30 detik)", value=False)
 
@@ -341,7 +335,7 @@ if status == "SURGE":
     """, unsafe_allow_html=True)
 
 if pred_result.get("source") == "synthetic":
-    st.warning("⚠️ **Koneksi ke Machine Learning API terputus.** Menampilkan data prediksi simulasi (synthetic fallback) untuk menjaga operasional dashboard.")
+    st.error("🚨 **API OFFLINE / TERPUTUS! (DATA DUMMY AKTIF)** 🚨\n\nKoneksi ke Machine Learning API (FastAPI di port 8000) gagal atau terputus. Dashboard secara otomatis beralih menggunakan **Data Simulasi (Synthetic Fallback)** agar aplikasi tetap dapat diakses tanpa *crash*.")
 
 # =============================================================================
 # METRIC CARDS
