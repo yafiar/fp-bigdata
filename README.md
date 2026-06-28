@@ -105,10 +105,10 @@ Transportasi publik Surabaya menghadapi tantangan operasional yang terukur:
                           └─────────────┬──────────────┘
                                         ▼
                          ┌──────────────────────────────┐
-                         │      SERVING LAYER — P4       │
-                         │   Streamlit Dashboard          │
-                         │   Peta Folium GIS · Grafik     │
-                         │   Tabel Armada · Heatmap       │
+                         │      SERVING LAYER — P4      │
+                         │   Streamlit Dashboard        │
+                         │   Peta Folium GIS · Grafik   │
+                         │   Tabel Armada · Heatmap     │
                          └──────────────────────────────┘
 ```
 
